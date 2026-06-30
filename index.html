@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Farming Control Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #121212; color: #fff; text-align: center; padding: 15px; margin: 0; }
+    h1 { color: #4CAF50; font-size: 24px; margin-bottom: 5px; }
+    .status { font-size: 13px; color: #aaa; margin-bottom: 15px; }
+    
+    #alertBanner { display: none; padding: 15px; margin: 15px auto; max-width: 600px; border-radius: 8px; font-weight: bold; font-size: 15px; text-align: left; }
+    .heat-alert { background-color: #D84315; color: #fff; border-left: 6px solid #FF3D00; }
+    .cold-alert { background-color: #1565C0; color: #fff; border-left: 6px solid #2979FF; }
+    
+    .card-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 15px; }
+    .card { background: #1e1e1e; padding: 15px; border-radius: 8px; width: 130px; box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
+    .card h3 { margin: 0 0 8px 0; font-size: 14px; color: #bbb; }
+    .value { font-size: 20px; font-weight: bold; color: #00E676; }
+    
+    .table-container { max-width: 600px; margin: 25px auto; background: #1e1e1e; padding: 15px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
+    .table-container h2 { font-size: 16px; color: #4CAF50; margin-top: 0; text-align: left; text-transform: uppercase; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #333; }
+    th { color: #aaa; font-weight: normal; }
+  </style>
+</head>
+<body>
+
+  <h1>LOCAL FARM TELEMETRY HUB</h1>
+  <div class="status" id="time">Connecting to cloud API engine...</div>
+  
+  <div id="alertBanner"></div>
+  
+  <div class="card-container">
+    <div class="card"><h3>Temperature</h3><div class="value" id="temp">--</div></div>
+    <div class="card"><h3>Humidity</h3><div class="value" id="hum">--</div></div>
+    <div class="card"><h3>Soil VWC</h3><div class="value" id="soil">--</div></div>
+    <div class="card"><h3>Precipitation</h3><div class="value" id="rain">--</div></div>
+    <div class="card"><h3>Water Pump</h3><div class="value" id="pump">--</div></div>
+  </div>
+
+  <div class="table-container">
+    <h2>Weekly Historical Trends Summary</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Time Frame Block</th>
+          <th>Mean Air Temp</th>
+          <th>Mean Soil Moisture</th>
+        </tr>
+      </thead>
+      <tbody id="summaryRows">
+        <tr><td colspan="3" style="color:#666;">Calculating...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    // ✅ Your actual deployment URL (updated)
+    const API_URL = "https://script.google.com/macros/s/AKfycbwI1PM1EjLY9bqzztUGObZ2KoRvWZDTR5RN4BRb-UskOP41fhIgA7CLssjtWkCmBBty/exec";
+
+    /**
+     * Fetches the latest sensor data and updates the UI.
+     * Expects the backend to respond with JSON containing:
+     *   temp, hum, soil, rain, pump, alertMessage, alertType, timestamp
+     */
+    async function updateDashboard() {
+      try {
+        const response = await fetch(`${API_URL}?action=getLatest`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+
+        // Guard against missing fields
+        document.getElementById('temp').innerText = (data.temp ?? '--') + " °C";
+        document.getElementById('hum').innerText  = (data.hum ?? '--') + " %";
+        document.getElementById('soil').innerText = (data.soil ?? '--') + " %";
+        document.getElementById('rain').innerText = data.rain ?? '--';
+        document.getElementById('pump').innerText = data.pump ?? '--';
+        document.getElementById('time').innerText = "Last sync: " + (data.timestamp || new Date().toLocaleTimeString());
+
+        // Alert banner logic
+        const banner = document.getElementById('alertBanner');
+        if (data.alertMessage) {
+          banner.innerText = data.alertMessage;
+          banner.className = data.alertType === 'heat' ? 'heat-alert' : 'cold-alert';
+          banner.style.display = 'block';
+        } else {
+          banner.style.display = 'none';
+        }
+      } catch (err) {
+        console.error("Telemetry fetch error:", err);
+        document.getElementById('time').innerText = "⚠️ Sync failed. Check console.";
+      }
+    }
+
+    /**
+     * Fetches the weekly summary and populates the table.
+     * Expects an array of objects: { week, avgTemp, avgSoil }
+     */
+    async function loadWeeklySummary() {
+      try {
+        const response = await fetch(`${API_URL}?action=getWeekly`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const summaryList = await response.json();
+
+        const tableBody = document.getElementById('summaryRows');
+        tableBody.innerHTML = "";
+
+        if (!Array.isArray(summaryList) || summaryList.length === 0) {
+          tableBody.innerHTML = "<tr><td colspan='3' style='color:#666;'>No historical data available</td></tr>";
+          return;
+        }
+
+        summaryList.forEach(row => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${row.week || '—'}</td><td>${row.avgTemp ?? '—'} °C</td><td>${row.avgSoil ?? '—'} %</td>`;
+          tableBody.appendChild(tr);
+        });
+      } catch (err) {
+        console.error("Weekly trend fetch error:", err);
+        document.getElementById('summaryRows').innerHTML = 
+          "<tr><td colspan='3' style='color:#666;'>Error loading trends</td></tr>";
+      }
+    }
+
+    // Refresh intervals
+    setInterval(updateDashboard, 5000);
+    setInterval(loadWeeklySummary, 30000);
+
+    // Initial load
+    window.onload = () => {
+      updateDashboard();
+      loadWeeklySummary();
+    };
+  </script>
+</body>
+</html>
