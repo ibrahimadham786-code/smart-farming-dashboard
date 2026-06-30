@@ -3,136 +3,591 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart Farming Control Dashboard</title>
+  
+  <!-- PWA META TAGS (added) -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="manifest.json">
+
+  <title>Smart Farm Telemetry Hub</title>
+
+  <!-- Google Fonts & Font Awesome Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
   <style>
-    body { font-family: Arial, sans-serif; background: #121212; color: #fff; text-align: center; padding: 15px; margin: 0; }
-    h1 { color: #4CAF50; font-size: 24px; margin-bottom: 5px; }
-    .status { font-size: 13px; color: #aaa; margin-bottom: 15px; }
-    
-    #alertBanner { display: none; padding: 15px; margin: 15px auto; max-width: 600px; border-radius: 8px; font-weight: bold; font-size: 15px; text-align: left; }
-    .heat-alert { background-color: #D84315; color: #fff; border-left: 6px solid #FF3D00; }
-    .cold-alert { background-color: #1565C0; color: #fff; border-left: 6px solid #2979FF; }
-    
-    .card-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 15px; }
-    .card { background: #1e1e1e; padding: 15px; border-radius: 8px; width: 130px; box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
-    .card h3 { margin: 0 0 8px 0; font-size: 14px; color: #bbb; }
-    .value { font-size: 20px; font-weight: bold; color: #00E676; }
-    
-    .table-container { max-width: 600px; margin: 25px auto; background: #1e1e1e; padding: 15px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
-    .table-container h2 { font-size: 16px; color: #4CAF50; margin-top: 0; text-align: left; text-transform: uppercase; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
-    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #333; }
-    th { color: #aaa; font-weight: normal; }
+    /* ... (all existing styles remain exactly the same) ... */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 20% 30%, #1a1f2e, #0b0e14);
+      padding: 20px;
+    }
+
+    .dashboard {
+      max-width: 860px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 32px;
+      padding: 28px 30px 24px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+    }
+
+    /* ---- HEADER ---- */
+    .header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 22px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      padding-bottom: 16px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .header-left i {
+      font-size: 26px;
+      color: #4CAF50;
+      background: rgba(76, 175, 80, 0.15);
+      padding: 10px;
+      border-radius: 14px;
+    }
+
+    .header-left h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      background: linear-gradient(135deg, #f0f4ff 0%, #a0c0ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .header-left span {
+      font-size: 13px;
+      font-weight: 400;
+      color: #8892a8;
+      margin-left: 6px;
+      -webkit-text-fill-color: #8892a8;
+    }
+
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(76, 175, 80, 0.12);
+      padding: 6px 14px 6px 10px;
+      border-radius: 40px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #6fcf97;
+      border: 1px solid rgba(76, 175, 80, 0.15);
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      background: #4CAF50;
+      border-radius: 50%;
+      display: inline-block;
+      animation: pulse-dot 1.6s ease-in-out infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.2; transform: scale(0.7); }
+    }
+
+    /* ---- ALERT BANNER ---- */
+    #alertBanner {
+      display: none;
+      padding: 14px 20px;
+      margin-bottom: 22px;
+      border-radius: 14px;
+      font-weight: 600;
+      font-size: 14px;
+      backdrop-filter: blur(8px);
+      border: 1px solid transparent;
+      align-items: center;
+      gap: 12px;
+      animation: slideDown 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    #alertBanner i {
+      font-size: 20px;
+    }
+
+    @keyframes slideDown {
+      0% { opacity: 0; transform: translateY(-12px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    .heat-alert {
+      background: rgba(216, 67, 21, 0.18);
+      border-color: rgba(255, 61, 0, 0.25);
+      color: #ff8a65;
+    }
+    .heat-alert i { color: #ff5722; }
+
+    .cold-alert {
+      background: rgba(21, 101, 192, 0.18);
+      border-color: rgba(41, 121, 255, 0.25);
+      color: #82b1ff;
+    }
+    .cold-alert i { color: #2979ff; }
+
+    /* ---- CARDS GRID ---- */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 18px;
+      padding: 18px 16px 16px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      backdrop-filter: blur(4px);
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    .card-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #a8b2c9;
+      letter-spacing: 0.3px;
+      margin-bottom: 12px;
+    }
+
+    .card-label i {
+      font-size: 15px;
+      width: 20px;
+      text-align: center;
+    }
+
+    .card-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: #f0f4ff;
+      letter-spacing: -0.5px;
+      line-height: 1.2;
+    }
+
+    .card-value .unit {
+      font-size: 15px;
+      font-weight: 500;
+      color: #6b7a93;
+      margin-left: 4px;
+    }
+
+    /* Progress bars */
+    .progress-track {
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 4px;
+      margin-top: 14px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 4px;
+      transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .card-temp .progress-fill { background: linear-gradient(90deg, #ff7e5f, #feb47b); }
+    .card-temp i { color: #ff7e5f; }
+
+    .card-hum .progress-fill { background: linear-gradient(90deg, #4facfe, #00f2fe); }
+    .card-hum i { color: #4facfe; }
+
+    .card-soil .progress-fill { background: linear-gradient(90deg, #a8e063, #56ab2f); }
+    .card-soil i { color: #a8e063; }
+
+    /* Status chips for Rain & Pump */
+    .card-status .card-value {
+      font-size: 18px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 14px 4px 10px;
+      border-radius: 40px;
+      font-size: 14px;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .chip-raining { color: #4fc3f7; border-color: rgba(79, 195, 247, 0.2); background: rgba(79, 195, 247, 0.08); }
+    .chip-clear   { color: #ffd54f; border-color: rgba(255, 213, 79, 0.2); background: rgba(255, 213, 79, 0.08); }
+    .chip-active  { color: #4CAF50; border-color: rgba(76, 175, 80, 0.2); background: rgba(76, 175, 80, 0.08); }
+    .chip-inactive{ color: #ef5350; border-color: rgba(239, 83, 80, 0.2); background: rgba(239, 83, 80, 0.08); }
+
+    /* ---- WEEKLY TABLE ---- */
+    .table-container {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 18px;
+      padding: 18px 20px 20px;
+      backdrop-filter: blur(4px);
+      margin-bottom: 18px;
+    }
+
+    .table-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .table-header i {
+      font-size: 18px;
+      color: #4CAF50;
+      background: rgba(76, 175, 80, 0.12);
+      padding: 8px;
+      border-radius: 10px;
+    }
+
+    .table-header h2 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #e8edf5;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      margin: 0;
+    }
+
+    .table-header .badge-count {
+      margin-left: auto;
+      font-size: 12px;
+      color: #6b7a93;
+      background: rgba(255,255,255,0.04);
+      padding: 2px 12px;
+      border-radius: 40px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th {
+      text-align: left;
+      padding: 10px 6px 8px 0;
+      color: #6b7a93;
+      font-weight: 500;
+      font-size: 12px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    td {
+      padding: 12px 6px 12px 0;
+      color: #cfd8e6;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      font-weight: 500;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      color: #ffffff;
+    }
+
+    .placeholder-row td {
+      color: #4d5a72;
+      font-style: italic;
+      text-align: center;
+      padding: 20px 0;
+    }
+
+    /* ---- FOOTER ---- */
+    .footer {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+      color: #5d6a83;
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+      padding-top: 16px;
+    }
+
+    .footer i {
+      font-size: 14px;
+      color: #4CAF50;
+    }
+
+    #time {
+      font-weight: 500;
+      color: #8892a8;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ---- RESPONSIVE ---- */
+    @media (max-width: 600px) {
+      .dashboard { padding: 18px; }
+      .header-left h1 { font-size: 18px; }
+      .header-left span { display: none; }
+      .live-badge { font-size: 11px; padding: 4px 10px; }
+      .card-value { font-size: 22px; }
+      .grid { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+      .table-container { padding: 14px; }
+      th, td { font-size: 13px; padding: 8px 4px 8px 0; }
+    }
   </style>
 </head>
 <body>
 
-  <h1>LOCAL FARM TELEMETRY HUB</h1>
-  <div class="status" id="time">Connecting to cloud API engine...</div>
-  
-  <div id="alertBanner"></div>
-  
-  <div class="card-container">
-    <div class="card"><h3>Temperature</h3><div class="value" id="temp">--</div></div>
-    <div class="card"><h3>Humidity</h3><div class="value" id="hum">--</div></div>
-    <div class="card"><h3>Soil VWC</h3><div class="value" id="soil">--</div></div>
-    <div class="card"><h3>Precipitation</h3><div class="value" id="rain">--</div></div>
-    <div class="card"><h3>Water Pump</h3><div class="value" id="pump">--</div></div>
+<div class="dashboard">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <i class="fas fa-seedling"></i>
+      <div>
+        <h1>Farm Telemetry <span>· Real‑time</span></h1>
+      </div>
+    </div>
+    <div class="live-badge">
+      <span class="live-dot"></span> LIVE
+    </div>
   </div>
 
+  <!-- ALERT BANNER -->
+  <div id="alertBanner">
+    <i class="fas fa-exclamation-triangle"></i>
+    <span id="alertMessage">Alert</span>
+  </div>
+
+  <!-- CARDS GRID -->
+  <div class="grid">
+    <!-- Temperature -->
+    <div class="card card-temp">
+      <div class="card-label"><i class="fas fa-thermometer-half"></i> Temperature</div>
+      <div class="card-value"><span id="temp">--</span><span class="unit">°C</span></div>
+      <div class="progress-track"><div class="progress-fill" id="temp-progress" style="width:0%"></div></div>
+    </div>
+
+    <!-- Humidity -->
+    <div class="card card-hum">
+      <div class="card-label"><i class="fas fa-droplet"></i> Humidity</div>
+      <div class="card-value"><span id="hum">--</span><span class="unit">%</span></div>
+      <div class="progress-track"><div class="progress-fill" id="hum-progress" style="width:0%"></div></div>
+    </div>
+
+    <!-- Soil VWC -->
+    <div class="card card-soil">
+      <div class="card-label"><i class="fas fa-earth-americas"></i> Soil VWC</div>
+      <div class="card-value"><span id="soil">--</span><span class="unit">%</span></div>
+      <div class="progress-track"><div class="progress-fill" id="soil-progress" style="width:0%"></div></div>
+    </div>
+
+    <!-- Rain Status -->
+    <div class="card card-status">
+      <div class="card-label"><i class="fas fa-cloud-rain"></i> Precipitation</div>
+      <div class="card-value" id="rain-status">—</div>
+    </div>
+
+    <!-- Water Pump -->
+    <div class="card card-status">
+      <div class="card-label"><i class="fas fa-water"></i> Water Pump</div>
+      <div class="card-value" id="pump-status">—</div>
+    </div>
+  </div>
+
+  <!-- WEEKLY SUMMARY TABLE -->
   <div class="table-container">
-    <h2>Weekly Historical Trends Summary</h2>
+    <div class="table-header">
+      <i class="fas fa-chart-simple"></i>
+      <h2>Weekly Historical Trends</h2>
+      <span class="badge-count">7‑day rolling</span>
+    </div>
     <table>
       <thead>
         <tr>
-          <th>Time Frame Block</th>
+          <th>Time Frame</th>
           <th>Mean Air Temp</th>
           <th>Mean Soil Moisture</th>
         </tr>
       </thead>
       <tbody id="summaryRows">
-        <tr><td colspan="3" style="color:#666;">Calculating...</td></tr>
+        <tr class="placeholder-row"><td colspan="3">Calculating…</td></tr>
       </tbody>
     </table>
   </div>
 
-  <script>
-    // ✅ Your actual deployment URL (updated)
-    const API_URL = "https://script.google.com/macros/s/AKfycbwI1PM1EjLY9bqzztUGObZ2KoRvWZDTR5RN4BRb-UskOP41fhIgA7CLssjtWkCmBBty/exec";
+  <!-- FOOTER -->
+  <div class="footer">
+    <i class="fas fa-sync-alt fa-fw"></i>
+    <span id="time">Connecting to cloud API engine…</span>
+  </div>
 
-    /**
-     * Fetches the latest sensor data and updates the UI.
-     * Expects the backend to respond with JSON containing:
-     *   temp, hum, soil, rain, pump, alertMessage, alertType, timestamp
-     */
-    async function updateDashboard() {
-      try {
-        const response = await fetch(`${API_URL}?action=getLatest`);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
+</div>
 
-        // Guard against missing fields
-        document.getElementById('temp').innerText = (data.temp ?? '--') + " °C";
-        document.getElementById('hum').innerText  = (data.hum ?? '--') + " %";
-        document.getElementById('soil').innerText = (data.soil ?? '--') + " %";
-        document.getElementById('rain').innerText = data.rain ?? '--';
-        document.getElementById('pump').innerText = data.pump ?? '--';
-        document.getElementById('time').innerText = "Last sync: " + (data.timestamp || new Date().toLocaleTimeString());
+<script>
+  // Your exact deployment URL (unchanged)
+  const API_URL = "https://script.google.com/macros/s/AKfycbwI1PM1EjLY9bqzztUGObZ2KoRvWZDTR5RN4BRb-UskOP41fhIgA7CLssjtWkCmBBty/exec";
 
-        // Alert banner logic
-        const banner = document.getElementById('alertBanner');
-        if (data.alertMessage) {
-          banner.innerText = data.alertMessage;
-          banner.className = data.alertType === 'heat' ? 'heat-alert' : 'cold-alert';
-          banner.style.display = 'block';
-        } else {
-          banner.style.display = 'none';
-        }
-      } catch (err) {
-        console.error("Telemetry fetch error:", err);
-        document.getElementById('time').innerText = "⚠️ Sync failed. Check console.";
+  /**
+   * Fetches the latest sensor data and updates the UI.
+   * Expects JSON: { temp, hum, soil, rain, pump, alertMessage, alertType, timestamp }
+   */
+  async function updateDashboard() {
+    try {
+      const response = await fetch(`${API_URL}?action=getLatest`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+
+      // Update numeric values and progress bars
+      const temp = parseFloat(data.temp) || 0;
+      const hum  = parseFloat(data.hum)  || 0;
+      const soil = parseFloat(data.soil) || 0;
+
+      document.getElementById('temp').textContent = temp.toFixed(1);
+      document.getElementById('hum').textContent  = hum.toFixed(1);
+      document.getElementById('soil').textContent = soil.toFixed(1);
+
+      // Progress bars (assume temp 0‑60°C, hum 0‑100%, soil 0‑100%)
+      document.getElementById('temp-progress').style.width = Math.min((temp / 60) * 100, 100) + '%';
+      document.getElementById('hum-progress').style.width  = Math.min(hum, 100) + '%';
+      document.getElementById('soil-progress').style.width = Math.min(soil, 100) + '%';
+
+      // Rain status chip
+      const rainRaw = String(data.rain).toLowerCase();
+      const isRaining = rainRaw.includes('rain') || rainRaw.includes('high') || 
+                        rainRaw.includes('detected') || rainRaw === '1' || rainRaw === 'true';
+      const rainEl = document.getElementById('rain-status');
+      if (isRaining) {
+        rainEl.innerHTML = `<span class="status-chip chip-raining"><i class="fas fa-umbrella"></i> ${data.rain}</span>`;
+      } else {
+        rainEl.innerHTML = `<span class="status-chip chip-clear"><i class="fas fa-sun"></i> ${data.rain || 'Clear'}</span>`;
       }
-    }
 
-    /**
-     * Fetches the weekly summary and populates the table.
-     * Expects an array of objects: { week, avgTemp, avgSoil }
-     */
-    async function loadWeeklySummary() {
-      try {
-        const response = await fetch(`${API_URL}?action=getWeekly`);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const summaryList = await response.json();
-
-        const tableBody = document.getElementById('summaryRows');
-        tableBody.innerHTML = "";
-
-        if (!Array.isArray(summaryList) || summaryList.length === 0) {
-          tableBody.innerHTML = "<tr><td colspan='3' style='color:#666;'>No historical data available</td></tr>";
-          return;
-        }
-
-        summaryList.forEach(row => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${row.week || '—'}</td><td>${row.avgTemp ?? '—'} °C</td><td>${row.avgSoil ?? '—'} %</td>`;
-          tableBody.appendChild(tr);
-        });
-      } catch (err) {
-        console.error("Weekly trend fetch error:", err);
-        document.getElementById('summaryRows').innerHTML = 
-          "<tr><td colspan='3' style='color:#666;'>Error loading trends</td></tr>";
+      // Pump status chip
+      const pumpRaw = String(data.pump).toLowerCase();
+      const isPumping = pumpRaw.includes('on') || pumpRaw.includes('active') || 
+                        pumpRaw.includes('running') || pumpRaw === '1' || pumpRaw === 'true';
+      const pumpEl = document.getElementById('pump-status');
+      if (isPumping) {
+        pumpEl.innerHTML = `<span class="status-chip chip-active"><i class="fas fa-circle"></i> ${data.pump}</span>`;
+      } else {
+        pumpEl.innerHTML = `<span class="status-chip chip-inactive"><i class="fas fa-circle"></i> ${data.pump || 'Inactive'}</span>`;
       }
+
+      // Alert banner
+      const banner = document.getElementById('alertBanner');
+      const msgSpan = document.getElementById('alertMessage');
+      if (data.alertMessage) {
+        msgSpan.textContent = data.alertMessage;
+        banner.className = data.alertType === 'heat' ? 'heat-alert' : 'cold-alert';
+        banner.style.display = 'flex';
+      } else {
+        banner.style.display = 'none';
+      }
+
+      // Timestamp
+      document.getElementById('time').textContent = "Last sync: " + (data.timestamp || new Date().toLocaleTimeString());
+
+    } catch (err) {
+      console.error("Telemetry fetch error:", err);
+      document.getElementById('time').textContent = "⚠️ Sync failed. Check console.";
     }
+  }
 
-    // Refresh intervals
-    setInterval(updateDashboard, 5000);
-    setInterval(loadWeeklySummary, 30000);
+  /**
+   * Fetches the weekly summary and populates the table.
+   * Expects an array: [{ week, avgTemp, avgSoil }, …]
+   */
+  async function loadWeeklySummary() {
+    try {
+      const response = await fetch(`${API_URL}?action=getWeekly`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const summaryList = await response.json();
 
-    // Initial load
-    window.onload = () => {
-      updateDashboard();
-      loadWeeklySummary();
-    };
-  </script>
+      const tbody = document.getElementById('summaryRows');
+      tbody.innerHTML = '';
+
+      if (!Array.isArray(summaryList) || summaryList.length === 0) {
+        tbody.innerHTML = '<tr class="placeholder-row"><td colspan="3">No historical data available</td></tr>';
+        return;
+      }
+
+      summaryList.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${row.week || '—'}</td><td>${row.avgTemp ?? '—'} °C</td><td>${row.avgSoil ?? '—'} %</td>`;
+        tbody.appendChild(tr);
+      });
+    } catch (err) {
+      console.error("Weekly trend fetch error:", err);
+      document.getElementById('summaryRows').innerHTML = 
+        '<tr class="placeholder-row"><td colspan="3">Error loading trends</td></tr>';
+    }
+  }
+
+  // Polling intervals (same as before)
+  setInterval(updateDashboard, 5000);
+  setInterval(loadWeeklySummary, 30000);
+
+  // Initial load
+  window.onload = () => {
+    updateDashboard();
+    loadWeeklySummary();
+  };
+</script>
+
+<!-- PWA SERVICE WORKER REGISTRATION (added) -->
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js')
+      .then(() => console.log('PWA Service Worker Registered Successfully.'));
+  }
+</script>
+
 </body>
 </html>
